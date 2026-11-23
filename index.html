@@ -53,7 +53,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
 function say(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/\(.*?\)/g,""));u.lang="en-US";u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
 function rec(topic,kind,score,total){const r=db.rec[db.cur]=db.rec[db.cur]||{};const k=topic+"/"+kind;const p=r[k]||{best:0,tries:0};p.tries++;p.last=score+"/"+total;p.best=Math.max(p.best,Math.round(score/total*100));p.when=new Date().toLocaleString();r[k]=p;save()}
-function pct(topic){const r=(db.rec[db.cur]||{});const ks=["words","match","problems","quiz"];return Math.round(ks.reduce((s,k)=>s+((r[topic+"/"+k]||{}).best||0),0)/ks.length)}
+function pct(topic){const r=(db.rec[db.cur]||{});const ks=["words","match","calc","problems","quiz"];return Math.round(ks.reduce((s,k)=>s+((r[topic+"/"+k]||{}).best||0),0)/ks.length)}
 
 function home(){
   $("#who").textContent=db.cur?"👤 "+db.cur:"";
@@ -68,7 +68,7 @@ function pickKid(){
 function addKid(){const n=$("#nk").value.trim();if(!n)return;if(!db.kids.includes(n))db.kids.push(n);setKid(n)}
 function setKid(n){db.cur=n;save();home()}
 function report(){
-  const r=db.rec[db.cur]||{};const names={words:"單字卡",match:"配對遊戲",problems:"應用題",quiz:"小測驗"};
+  const r=db.rec[db.cur]||{};const names={calc:"計算練習",words:"單字卡",match:"配對遊戲",problems:"應用題",quiz:"小測驗"};
   const rows=Object.entries(r).map(([k,v])=>{const[t,kind]=k.split("/");const tp=COURSE.topics.find(x=>x.id==t);return`<tr><td>${esc(tp?tp.zh:t)}</td><td>${names[kind]}</td><td>${v.best}%</td><td>${v.last}</td><td>${v.tries}</td><td class="small">${esc(v.when)}</td></tr>`}).join("");
   app.innerHTML=`<div class="card"><h2>${esc(db.cur)} 的成績紀錄</h2><table><tr><th>單元</th><th>項目</th><th>最佳</th><th>上次</th><th>次數</th><th>時間</th></tr>${rows||"<tr><td colspan=6>還沒有紀錄</td></tr>"}</table><button onclick="home()">回首頁</button></div>`;
 }
@@ -76,9 +76,9 @@ function report(){
 let T;
 function topic(id,tab="learn"){
   T=COURSE.topics.find(t=>t.id==id);
-  const tabs=[["learn","📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["problems","📝 應用題"],["quiz","✅ 小測驗"]];
+  const tabs=[["learn","📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"]];
   app.innerHTML=`<div class="card"><div style="font-weight:700">${esc(T.en)}　${esc(T.zh)}</div><div class="tabs" style="margin-top:8px">${tabs.map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="topic('${id}','${k}')">${l}</button>`).join("")}</div></div><div id="pane"></div>`;
-  ({learn,words,match,problems,quiz})[tab]();
+  ({learn,words,match,calc,problems,quiz})[tab]();
 }
 function learn(){
   const vids=(T.videos||[]).map(v=>`<div class="card"><h3>📺 ${esc(v.title)}</h3><div class="small">Lesson ${esc(v.lesson)} · ${esc(v.by)}</div><div class="video" style="margin-top:8px"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.id)}?rel=0" allowfullscreen loading="lazy"></iframe></div></div>`).join("");
@@ -110,6 +110,23 @@ function match(){
     else{miss++;b.classList.add("bad");const s=sel;setTimeout(()=>{b.classList.remove("bad");s.classList.remove("sel")},500)}
     sel.classList.remove("sel");sel=null;
   });
+}
+function calc(){
+  const qs=T.calc;let i=0,sc=0;
+  const norm=x=>String(x).replace(/[,\s$]/g,"");
+  const draw=()=>{
+    if(i>=qs.length){rec(T.id,"calc",sc,qs.length);$("#pane").innerHTML=`<div class="card"><h3>計算練習完成！答對 ${sc} / ${qs.length} 題</h3><button onclick="calc()">再練一次</button></div>`;return}
+    const q=qs[i];let tried=false;
+    $("#pane").innerHTML=`<div class="card"><div class="small">第 ${i+1} / ${qs.length} 題　直接輸入答案（逗號可加可不加）</div><p style="font-size:24px"><b>${esc(q.q)}</b></p>${q.zh?`<p class="small">${esc(q.zh)}</p>`:""}<input id="ans" inputmode="numeric" autocomplete="off" style="font:inherit;font-size:24px;padding:8px;border-radius:10px;border:2px solid #ccc;width:200px"> <button id="ck">確定 Check</button><p id="fb"></p></div>`;
+    const inp=$("#ans");inp.focus();
+    const check=()=>{
+      if(!inp.value.trim())return;
+      if(norm(inp.value)===norm(q.a)){if(!tried)sc++;$("#fb").innerHTML=`<b style="color:var(--ok)">✔ 答對了！ Correct!</b>`;$("#ck").disabled=true;setTimeout(()=>{i++;draw()},900)}
+      else if(!tried){tried=true;$("#fb").innerHTML=`<b style="color:var(--bad)">再想一想 Try again</b>${q.hint?`<br><span class="small">提示：${esc(q.hint)}</span>`:""}`;inp.select()}
+      else{$("#fb").innerHTML=`<b style="color:var(--bad)">答案是 ${esc(q.a)}</b> <button id="nx">下一題</button>`;$("#nx").onclick=()=>{i++;draw()};$("#ck").disabled=true}
+    };
+    $("#ck").onclick=check;inp.onkeydown=e=>{if(e.key==="Enter")check()};
+  };draw();
 }
 function problems(){
   let p=0,s=0,right=0,total=0;
