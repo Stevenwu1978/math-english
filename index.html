@@ -59,7 +59,7 @@ function home(){
   $("#who").textContent=db.cur?"👤 "+db.cur:"";
   if(!db.cur) return pickKid();
   app.innerHTML=`<div class="card"><b>Hi, ${esc(db.cur)}!</b> 選一個單元開始 <button class="ghost" onclick="pickKid()">換人</button> <button class="ghost" onclick="report()">成績紀錄</button></div>`+
-  COURSE.topics.map(t=>`<div class="card"><div style="font-size:20px;font-weight:700">${esc(t.en)}</div><div>${esc(t.zh)}</div>${t.ready?`<div class="bar" style="margin:8px 0"><i style="width:${pct(t.id)}%"></i></div><div class="small">完成度 ${pct(t.id)}%</div><button onclick="topic('${t.id}')">開始 Start</button>`:`<div class="small">製作中 Coming soon</div>`}</div>`).join("");
+  COURSE.topics.map(t=>`<div class="card"><div style="font-size:20px;font-weight:700">${esc(t.en)}</div><div>${esc(t.zh)}</div>${t.ready?`<div class="bar" style="margin:8px 0"><i style="width:${pct(t.id)}%"></i></div><div class="small">完成度 ${pct(t.id)}%${wcount(t.id)?`　📕 錯題 ${wcount(t.id)} 題`:""}</div><button onclick="topic('${t.id}')">開始 Start</button>`:`<div class="small">製作中 Coming soon</div>`}</div>`).join("");
 }
 function pickKid(){
   $("#who").textContent="";
@@ -70,15 +70,15 @@ function setKid(n){db.cur=n;save();home()}
 function report(){
   const r=db.rec[db.cur]||{};const names={calc:"計算練習",words:"單字卡",match:"配對遊戲",problems:"應用題",quiz:"小測驗"};
   const rows=Object.entries(r).map(([k,v])=>{const[t,kind]=k.split("/");const tp=COURSE.topics.find(x=>x.id==t);return`<tr><td>${esc(tp?tp.zh:t)}</td><td>${names[kind]}</td><td>${v.best}%</td><td>${v.last}</td><td>${v.tries}</td><td class="small">${esc(v.when)}</td></tr>`}).join("");
-  app.innerHTML=`<div class="card"><h2>${esc(db.cur)} 的成績紀錄</h2><table><tr><th>單元</th><th>項目</th><th>最佳</th><th>上次</th><th>次數</th><th>時間</th></tr>${rows||"<tr><td colspan=6>還沒有紀錄</td></tr>"}</table><button onclick="home()">回首頁</button></div>`;
+  app.innerHTML=`<div class="card"><h2>${esc(db.cur)} 的成績紀錄</h2><table><tr><th>單元</th><th>項目</th><th>最佳</th><th>上次</th><th>次數</th><th>時間</th></tr>${rows||"<tr><td colspan=6>還沒有紀錄</td></tr>"}</table><h3>📕 錯題本</h3><p>${COURSE.topics.filter(t=>t.ready).map(t=>`${esc(t.zh)}：${wcount(t.id)} 題`).join("<br>")}</p><button onclick="home()">回首頁</button></div>`;
 }
 
 let T;
 function topic(id,tab="learn"){
   T=COURSE.topics.find(t=>t.id==id);
-  const tabs=[["learn","📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"]];
+  const tabs=[["learn","📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"],["review","📕 錯題本"+(wcount(id)?`（${wcount(id)}）`:"")]];
   app.innerHTML=`<div class="card"><div style="font-weight:700">${esc(T.en)}　${esc(T.zh)}</div><div class="tabs" style="margin-top:8px">${tabs.map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="topic('${id}','${k}')">${l}</button>`).join("")}</div></div><div id="pane"></div>`;
-  ({learn,words,match,calc,problems,quiz})[tab]();
+  ({learn,words,match,calc,problems,quiz,review})[tab]();
 }
 function learn(){
   const vids=(T.videos||[]).map(v=>`<div class="card"><h3>📺 ${esc(v.title)}</h3><div class="small">Lesson ${esc(v.lesson)} · ${esc(v.by)}</div><div class="video" style="margin-top:8px"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.id)}?rel=0" allowfullscreen loading="lazy"></iframe></div></div>`).join("");
@@ -111,23 +111,6 @@ function match(){
     sel.classList.remove("sel");sel=null;
   });
 }
-function calc(){
-  const qs=T.calc;let i=0,sc=0;
-  const norm=x=>String(x).replace(/[,\s$]/g,"");
-  const draw=()=>{
-    if(i>=qs.length){rec(T.id,"calc",sc,qs.length);$("#pane").innerHTML=`<div class="card"><h3>計算練習完成！答對 ${sc} / ${qs.length} 題</h3><button onclick="calc()">再練一次</button></div>`;return}
-    const q=qs[i];let tried=false;
-    $("#pane").innerHTML=`<div class="card"><div class="small">第 ${i+1} / ${qs.length} 題　直接輸入答案（逗號可加可不加）</div><p style="font-size:24px"><b>${esc(q.q)}</b></p>${q.zh?`<p class="small">${esc(q.zh)}</p>`:""}<input id="ans" inputmode="numeric" autocomplete="off" style="font:inherit;font-size:24px;padding:8px;border-radius:10px;border:2px solid #ccc;width:200px"> <button id="ck">確定 Check</button><p id="fb"></p></div>`;
-    const inp=$("#ans");inp.focus();
-    const check=()=>{
-      if(!inp.value.trim())return;
-      if(norm(inp.value)===norm(q.a)){if(!tried)sc++;$("#fb").innerHTML=`<b style="color:var(--ok)">✔ 答對了！ Correct!</b>`;$("#ck").disabled=true;setTimeout(()=>{i++;draw()},900)}
-      else if(!tried){tried=true;$("#fb").innerHTML=`<b style="color:var(--bad)">再想一想 Try again</b>${q.hint?`<br><span class="small">提示：${esc(q.hint)}</span>`:""}`;inp.select()}
-      else{$("#fb").innerHTML=`<b style="color:var(--bad)">答案是 ${esc(q.a)}</b> <button id="nx">下一題</button>`;$("#nx").onclick=()=>{i++;draw()};$("#ck").disabled=true}
-    };
-    $("#ck").onclick=check;inp.onkeydown=e=>{if(e.key==="Enter")check()};
-  };draw();
-}
 function problems(){
   let p=0,s=0,right=0,total=0;
   const draw=()=>{
@@ -141,19 +124,58 @@ function problems(){
     });
   };draw();
 }
-function quiz(){
-  const qs=shuffle(T.quiz);let i=0,sc=0;
+// ---- 錯題本 ----
+function wbook(){db.wrong=db.wrong||{};const w=db.wrong[db.cur]=db.wrong[db.cur]||{};return w[T.id]=w[T.id]||{}}
+function wcount(tid){return Object.keys(((db.wrong||{})[db.cur]||{})[tid]||{}).length}
+function markWrong(kind,q){const w=wbook();const k=kind+"|"+q.q;w[k]=(w[k]||0)+1;save()}
+function markRight(kind,q){const w=wbook();delete w[kind+"|"+q.q];save()}
+function wrongItems(){const w=wbook();return Object.keys(w).map(k=>{const[kind,...r]=k.split("|");const txt=r.join("|");const q=(kind=="quiz"?T.quiz:T.calc).find(x=>x.q===txt);return q?{kind,q,n:w[k]}:null}).filter(Boolean)}
+function review(){
+  const items=wrongItems();
+  if(!items.length){$("#pane").innerHTML=`<div class="card"><h3>📕 錯題本是空的 🎉</h3><p>測驗或計算練習答錯的題目會自動放進這裡，答對就會移出。</p></div>`;return}
+  $("#pane").innerHTML=`<div class="card"><h3>📕 錯題本（${items.length} 題）</h3><table><tr><th>題目</th><th>類型</th><th>錯過次數</th></tr>${items.map(x=>`<tr><td>${esc(x.q.q)}</td><td>${x.kind=="quiz"?"測驗":"計算"}</td><td>${x.n}</td></tr>`).join("")}</table><p><button onclick="runItems(shuffle(wrongItems()),'review')">開始練習錯題</button></p><p class="small">答對的題目會從錯題本移除，答錯的會留著下次再練。</p></div>`;
+}
+// 通用出題：items = [{kind:"quiz"|"calc", q}]，mode = "quiz" | "calc" | "review"
+function runItems(items,mode){
+  let i=0,sc=0;const wrong=[];
+  const norm=x=>String(x).replace(/[,\s$]/g,"");
+  const finish=()=>{
+    if(mode!=="review")rec(T.id,mode,sc,items.length);
+    const left=wcount(T.id);
+    const title=mode=="review"?`錯題練習完成！答對 ${sc} / ${items.length} 題`:mode=="quiz"?`得分 ${Math.round(sc/items.length*100)} 分（${sc} / ${items.length}）`:`計算練習完成！答對 ${sc} / ${items.length} 題`;
+    const list=wrong.length?`<h4>這次答錯的題目</h4><table><tr><th>題目</th><th>正確答案</th></tr>${wrong.map(x=>`<tr><td>${esc(x.q.q)}</td><td><b>${esc(x.kind=="quiz"?x.q.answer:x.q.a)}</b></td></tr>`).join("")}</table>`:`<p>全部答對，太棒了！🎉</p>`;
+    const again=mode=="review"?"review()":mode+"()";
+    $("#pane").innerHTML=`<div class="card"><h3>${title}</h3>${list}<p>${left?`<button onclick="runItems(shuffle(wrongItems()),'review')">📕 練習錯題（${left} 題）</button>`:""}<button class="ghost" onclick="${again}">${mode=="review"?"回錯題本":"再做一次"}</button></p></div>`;
+  };
+  const next=()=>{i++;draw()};
   const draw=()=>{
-    if(i>=qs.length){rec(T.id,"quiz",sc,qs.length);$("#pane").innerHTML=`<div class="card"><h3>得分 ${Math.round(sc/qs.length*100)} 分（${sc} / ${qs.length}）</h3><button onclick="quiz()">再考一次</button></div>`;return}
-    const q=qs[i];
-    $("#pane").innerHTML=`<div class="card"><div class="small">第 ${i+1} / ${qs.length} 題</div><p><b>${esc(q.q)}</b></p>${shuffle(q.choices).map(c=>`<button class="choice">${esc(c)}</button>`).join("")}</div>`;
-    document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{
-      document.querySelectorAll(".choice").forEach(x=>{x.disabled=true;if(x.textContent===q.answer)x.classList.add("ok")});
-      if(b.textContent===q.answer)sc++;else b.classList.add("bad");
-      setTimeout(()=>{i++;draw()},900);
-    });
+    if(i>=items.length)return finish();
+    const {kind,q}=items[i];
+    const head=`<div class="small">${mode=="review"?"📕 錯題 ":""}第 ${i+1} / ${items.length} 題</div>`;
+    if(kind=="quiz"){
+      $("#pane").innerHTML=`<div class="card">${head}<p><b>${esc(q.q)}</b></p>${shuffle(q.choices).map(c=>`<button class="choice">${esc(c)}</button>`).join("")}</div>`;
+      document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{
+        document.querySelectorAll(".choice").forEach(x=>{x.disabled=true;if(x.textContent===q.answer)x.classList.add("ok")});
+        if(b.textContent===q.answer){sc++;if(mode=="review")markRight(kind,q)}else{b.classList.add("bad");wrong.push(items[i]);markWrong(kind,q)}
+        setTimeout(next,b.textContent===q.answer?900:1600);
+      });
+    }else{
+      let tried=false;
+      $("#pane").innerHTML=`<div class="card">${head}<div class="small">直接輸入答案（逗號可加可不加）</div><p style="font-size:24px"><b>${esc(q.q)}</b></p>${q.zh?`<p class="small">${esc(q.zh)}</p>`:""}<input id="ans" inputmode="numeric" autocomplete="off" style="font:inherit;font-size:24px;padding:8px;border-radius:10px;border:2px solid #ccc;width:200px"> <button id="ck">確定 Check</button><p id="fb"></p></div>`;
+      const inp=$("#ans");inp.focus();
+      const check=()=>{
+        if(!inp.value.trim()||$("#ck").disabled)return;
+        if(norm(inp.value)===norm(q.a)){if(!tried){sc++;if(mode=="review")markRight(kind,q)}$("#fb").innerHTML=`<b style="color:var(--ok)">✔ 答對了！ Correct!</b>`;$("#ck").disabled=true;setTimeout(next,900)}
+        else if(!tried){tried=true;wrong.push(items[i]);markWrong(kind,q);$("#fb").innerHTML=`<b style="color:var(--bad)">再想一想 Try again</b>${q.hint?`<br><span class="small">提示：${esc(q.hint)}</span>`:""}`;inp.select()}
+        else{$("#fb").innerHTML=`<b style="color:var(--bad)">答案是 ${esc(q.a)}</b> <button id="nx">下一題</button>`;$("#nx").onclick=next;$("#ck").disabled=true}
+      };
+      $("#ck").onclick=check;inp.onkeydown=e=>{if(e.key==="Enter")check()};
+    }
   };draw();
 }
+function quiz(){runItems(shuffle(T.quiz).map(q=>({kind:"quiz",q})),"quiz")}
+function calc(){runItems(T.calc.map(q=>({kind:"calc",q})),"calc")}
+
 home();
 </script>
 </body>
