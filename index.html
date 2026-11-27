@@ -69,8 +69,9 @@ function home(){
   $("#who").innerHTML=db.cur?`👤 ${esc(db.cur)} <button class="ghost" style="padding:4px 10px" onclick="logout()">登出</button>`:"";
   if(!db.parentHash) return setupParent();
   if(!db.cur) return pickKid();
+  COURSE.topics.filter(t=>t.test&&t.ready&&!db.locked[t.id]).forEach(t=>{T=t;seedTest()});
   app.innerHTML=`<div class="card"><b>Hi, ${esc(db.cur)}!</b> 選一個單元開始 <button class="ghost" onclick="report()">成績紀錄</button></div>`+
-  COURSE.topics.map(t=>{const open=t.ready&&!db.locked[t.id];return`<div class="card"><div style="font-size:20px;font-weight:700">${esc(t.en)}</div><div>${esc(t.zh)}</div>${open?`<div class="bar" style="margin:8px 0"><i style="width:${pct(t.id)}%"></i></div><div class="small">完成度 ${pct(t.id)}%${wcount(t.id)?`　📕 錯題 ${wcount(t.id)} 題`:""}</div><button onclick="topic('${t.id}')">開始 Start</button>`:`<div class="small">🔒 ${t.ready?"家長尚未開放":"製作中 Coming soon"}</div>`}</div>`}).join("");
+  [...COURSE.topics].sort((a,b)=>(b.test?1:0)-(a.test?1:0)).map(t=>{const open=t.ready&&!db.locked[t.id];return`<div class="card"${t.test?' style="border:2px solid #e67e22"':""}><div style="font-size:20px;font-weight:700">${t.test?"📝 ":""}${esc(t.en)}</div><div>${esc(t.zh)}</div>${open?`<div class="bar" style="margin:8px 0"><i style="width:${pct(t.id)}%"></i></div><div class="small">完成度 ${pct(t.id)}%${wcount(t.id)?`　📕 錯題 ${wcount(t.id)} 題`:""}</div><button onclick="topic('${t.id}')">開始 Start</button>`:`<div class="small">🔒 ${t.ready?"家長尚未開放":"製作中 Coming soon"}</div>`}</div>`}).join("");
 }
 function logout(){setCur(null);isParent=false;home()}
 function setupParent(){
@@ -115,7 +116,7 @@ async function setPin(i){const k=db.kids[i];
   $("#ok").onclick=async()=>{const v=$("#pin").value.trim();if(v)db.pins[k]=await hash(v);else delete db.pins[k];save();parentPanel()};$("#pin").focus();
 }
 function confirmBox(text,yes){app.innerHTML=`<div class="card"><h2>${text}</h2><button class="bad" id="y">確定</button> <button class="ghost" onclick="parentPanel()">取消</button></div>`;$("#y").onclick=()=>{yes();save();parentPanel()}}
-function resetKid(i){const k=db.kids[i];confirmBox(`清除 ${esc(k)} 的成績和錯題本？`,()=>{delete db.rec[k];if(db.wrong)delete db.wrong[k]})}
+function resetKid(i){const k=db.kids[i];confirmBox(`清除 ${esc(k)} 的成績和錯題本？`,()=>{delete db.rec[k];if(db.wrong)delete db.wrong[k];if(db.seeded)delete db.seeded[k]})}
 function delKid(i){const k=db.kids[i];confirmBox(`刪除 ${esc(k)} 的帳號和所有紀錄？`,()=>{db.kids.splice(i,1);delete db.rec[k];delete db.pins[k];if(db.wrong)delete db.wrong[k]})}
 async function changeParent(){const v=$("#np").value;if(v.length<4)return $("#pmsg").textContent="至少 4 碼";db.parentHash=await hash(v);save();$("#pmsg").textContent="已修改"}
 
@@ -128,14 +129,16 @@ function report(kid){
 let T;
 function topic(id,tab="learn"){
   T=COURSE.topics.find(t=>t.id==id);if(!db.cur||db.locked[id])return home();
-  const tabs=[["learn","📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"],["review","📕 錯題本"+(wcount(id)?`（${wcount(id)}）`:"")]];
+  if(T.test)seedTest();
+  const tabs=[["learn",T.test?"🔍 錯在哪裡":"📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"],["review","📕 錯題本"+(wcount(id)?`（${wcount(id)}）`:"")]];
   app.innerHTML=`<div class="card"><div style="font-weight:700">${esc(T.en)}　${esc(T.zh)}</div><div class="tabs" style="margin-top:8px">${tabs.map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="topic('${id}','${k}')">${l}</button>`).join("")}</div></div><div id="pane"></div>`;
   ({learn,words,match,calc,problems,quiz,review})[tab]();
 }
 function learn(){
   const vids=(T.videos||[]).map(v=>`<div class="card"><h3>📺 ${esc(v.title)}</h3><div class="small">Lesson ${esc(v.lesson)} · ${esc(v.by)}</div><div class="video" style="margin-top:8px"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.id)}?rel=0" allowfullscreen loading="lazy"></iframe></div></div>`).join("");
   const les=(T.lessons||[]).map(l=>`<tr><td>${esc(l[0])}</td><td>${esc(l[1])}</td><td>${esc(l[2])}</td></tr>`).join("");
-  $("#pane").innerHTML=`${les?`<div class="card"><h3>📚 課程 Lessons</h3><table>${les}</table></div>`:""}<div class="card"><h3>💡 重要觀念 Big Ideas</h3>${T.concept.map(c=>`<p><b>${esc(c.en)}</b> <button class="ghost" onclick="say(this.dataset.t)" data-t="${esc(c.en)}">🔊</button><br>${esc(c.zh)}</p>`).join("")}</div>${vids}`;
+  const mis=T.mistakes?`<div class="card"><h3>🔍 考卷錯在哪裡 What went wrong</h3><table><tr><th>題號</th><th>題目重點</th><th>錯誤</th><th>正確觀念</th></tr>${T.mistakes.map(m=>`<tr><td><b>${esc(m.no)}</b></td><td>${esc(m.what)}</td><td>${esc(m.wrong)}</td><td>${esc(m.fix)}</td></tr>`).join("")}</table><p class="small">這些觀念的類似題已經放進「📕 錯題本」，答對就會移出。</p></div>`:"";
+  $("#pane").innerHTML=`${mis}${les?`<div class="card"><h3>📚 課程 Lessons</h3><table>${les}</table></div>`:""}<div class="card"><h3>💡 重要觀念 Big Ideas</h3>${T.concept.map(c=>`<p><b>${esc(c.en)}</b> <button class="ghost" onclick="say(this.dataset.t)" data-t="${esc(c.en)}">🔊</button><br>${esc(c.zh)}</p>`).join("")}</div>${vids}`;
 }
 function words(){
   let i=0,known=0;const list=shuffle(T.words);
@@ -177,6 +180,8 @@ function problems(){
   };draw();
 }
 // ---- 錯題本 ----
+// 考卷複習單元：第一次打開時，把所有類似題放進這個孩子的錯題本
+function seedTest(){db.seeded=db.seeded||{};const sd=db.seeded[db.cur]=db.seeded[db.cur]||{};if(sd[T.id])return;const w=wbook();T.quiz.forEach(q=>w["quiz|"+q.q]=w["quiz|"+q.q]||1);T.calc.forEach(q=>w["calc|"+q.q]=w["calc|"+q.q]||1);sd[T.id]=true;save()}
 function wbook(){db.wrong=db.wrong||{};const w=db.wrong[db.cur]=db.wrong[db.cur]||{};return w[T.id]=w[T.id]||{}}
 function wcount(tid,who){return Object.keys(((db.wrong||{})[who||db.cur]||{})[tid]||{}).length}
 function markWrong(kind,q){const w=wbook();const k=kind+"|"+q.q;w[k]=(w[k]||0)+1;save()}
