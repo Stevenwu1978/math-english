@@ -365,6 +365,105 @@ window.COURSE = {
         { q: "21 × 13 = ?", choices: ["273", "263", "283"], answer: "273" },
         { q: "In 3 × 4 = 12, 12 is the ___.", choices: ["product", "factor", "variable"], answer: "product" }
       ]
+    },
+    {
+      id: "w1127",
+      test: true,
+      en: "Test Review: Weekly Test 11/27 (Topics 1–4)",
+      zh: "考卷觀念複習：11/27 週考錯題",
+      ready: true,
+      mistakes: [
+        { no: "A3", what: "A symbol or letter that stands for a number", wrong: "選了 algorithm（演算法）", fix: "variable 變數：代表一個數的字母或符號，例如 n × 6 = 42 的 n。" },
+        { no: "A4", what: "Multiplication and division are ___", wrong: "選了 compensation", fix: "inverse operations 逆運算：乘法和除法可以互相「還原」，6 × 7 = 42 ↔ 42 ÷ 7 = 6。" },
+        { no: "A5", what: "Rewrite a number as the sum of numbers to form an easier problem", wrong: "選了 product", fix: "breaking apart 拆數：把一個數拆成幾個數的和，例如 7 × 26 = 7 × 20 + 7 × 6。" },
+        { no: "A6", what: "Choose numbers close to the numbers, then adjust the answer", wrong: "選了 partial products", fix: "compensation 補償法：先用接近的整數算，再把多算或少算的調整回來，例如 29 × 4 = 30 × 4 − 4。" },
+        { no: "B6, B13, F2", what: "三個數相乘的應用題（每週、每年、每人）", wrong: "只乘了兩個數，漏掉第三個條件（例如只算一週）", fix: "把每一個「每…」都找出來，一步一步乘完：7 × $10 = $70，再 × 6 週 = $420。" },
+        { no: "B14", what: "萬位的值是千位的值的 10 倍", wrong: "沒有對準位值", fix: "萬位和千位放「同一個數字」時，萬位的值就是千位的 10 倍，例如 233,410 的兩個 3（30,000 和 3,000）。" },
+        { no: "B16", what: "1,400 ÷ 70", wrong: "答案多了或少了一個 0", fix: "先把兩邊的 0 一起拿掉：140 ÷ 7 = 20。用乘法檢查：20 × 70 = 1,400。" },
+        { no: "C b, d, f, h", what: "多步驟計算（括號、先乘再加減、填空）", wrong: "計算順序或乘法算錯", fix: "先算括號，再算乘法，最後由左到右加減。填空題用逆運算：72 × 8 + □ = 650 → □ = 650 − 576 = 74。" },
+        { no: "D", what: "部分積 partial products", wrong: "寫成題目裡的數（2 艘、6 艘、126 加侖）", fix: "部分積是「乘出來的結果」：先算船數 2 + 6 = 8，8 × 126 = 8 × 100 + 8 × 20 + 8 × 6 = 800 + 160 + 48。" },
+        { no: "E", what: "分配律 9 × 895 = 9 × (900 − 5)", wrong: "算成 9 × 900 − 9（少乘 5），後面越錯越多", fix: "括號裡每一個數都要乘 9：(9 × 900) − (9 × 5) = 8,100 − 45 = 8,055。" },
+        { no: "F3", what: "租車總費用", wrong: "把 $55 + $8 算成 $132，再乘錯", fix: "每天的費用 = $55 + $8 = $63；6 天 = $63 × 6 = $378；再加油錢 $45 = $423。" },
+        { no: "F5", what: "6,072 × 4 再四捨五入到千位", wrong: "先把 6,072 取成 6,100，最後答案沒有乘 4", fix: "先算出答案：6,072 × 4 = 24,288，再看百位 2 < 5 捨去 → 24,000。題目問什麼就回答什麼。" }
+      ],
+      concept: [
+        { en: "Find every 'each' or 'per' in a word problem. Multiply step by step until every condition is used.", zh: "找出題目中每一個「每…」，一步一步乘，直到每個條件都用到。" },
+        { en: "Order of operations: parentheses first, then multiply or divide, then add or subtract from left to right.", zh: "計算順序：先括號，再乘除，最後由左到右加減。" },
+        { en: "Partial products are the answers you get when you multiply each place: 8 × 126 = 800 + 160 + 48.", zh: "部分積是每一位分別乘出來的「積」，不是題目裡的數字。" },
+        { en: "Distributive property: 9 × (900 − 5) = (9 × 900) − (9 × 5).", zh: "分配律：括號外的數要乘括號裡的「每一個」數。" },
+        { en: "Read what the question asks: if it says 'round the answer', find the answer first, then round.", zh: "看清楚題目問什麼：要「答案取概數」就先算出答案，再四捨五入。" }
+      ],
+      words: [
+        { en: "variable", zh: "變數（代表數的字母或符號）", ex: "In n × 5 = 30, n is a variable." },
+        { en: "inverse operations", zh: "逆運算（互相還原的運算）", ex: "Multiplication and division are inverse operations." },
+        { en: "breaking apart", zh: "拆數法", ex: "6 × 34 = (6 × 30) + (6 × 4)" },
+        { en: "compensation", zh: "補償法（先湊整再調整）", ex: "19 × 5 = 20 × 5 − 5" },
+        { en: "partial products", zh: "部分積", ex: "4 × 123 = 400 + 80 + 12" },
+        { en: "product", zh: "積（乘出來的答案）", ex: "The product of 6 and 7 is 42." },
+        { en: "array", zh: "陣列（排成行和列）", ex: "3 rows of 5 dots is an array." },
+        { en: "algorithm", zh: "演算法（一步一步的計算方法）", ex: "The standard algorithm for multiplication." },
+        { en: "distributive property", zh: "分配律", ex: "7 × (300 − 2) = (7 × 300) − (7 × 2)" }
+      ],
+      problems: [
+        {
+          en: "Ms. Lin rents a bike for 5 days. It costs $12 each day for the bike and $3 each day for a helmet. At the end, she pays $10 to clean the bike. What is the total cost?",
+          zh: "林老師租腳踏車 5 天，腳踏車每天 $12，安全帽每天 $3，最後再付 $10 清潔費。總共多少錢？",
+          steps: [
+            { q: "Cost for one day? 一天要多少錢？", choices: ["$12 + $3 = $15", "$12 × $3 = $36", "$12 + $3 + $10 = $25"], answer: "$12 + $3 = $15" },
+            { q: "Cost for 5 days? 5 天要多少錢？", choices: ["$15 × 5 = $75", "$15 + 5 = $20", "$12 × 5 = $60"], answer: "$15 × 5 = $75" },
+            { q: "Add the cleaning fee. 再加清潔費，總共？", choices: ["$75 + $10 = $85", "$75 − $10 = $65", "$75 × $10 = $750"], answer: "$75 + $10 = $85" }
+          ]
+        },
+        {
+          en: "Kai fills 3 vans and 5 buses with water. Each vehicle gets 134 liters. Which partial products can Kai add to find the total?",
+          zh: "Kai 幫 3 台廂型車和 5 台巴士加水，每台加 134 公升。哪些部分積相加可以得到總量？",
+          steps: [
+            { q: "How many vehicles in all? 總共幾台車？", choices: ["3 + 5 = 8", "3 × 5 = 15", "134 + 8 = 142"], answer: "3 + 5 = 8" },
+            { q: "Break apart 134: 8 × 134 = 8 × 100 + 8 × 30 + 8 × 4. The partial products are…", choices: ["800, 240, 32", "3, 5, 134", "100, 30, 4"], answer: "800, 240, 32" },
+            { q: "800 + 240 + 32 = ?", choices: ["1,072", "1,042", "972"], answer: "1,072" }
+          ]
+        },
+        {
+          en: "Coaster C is 5,138 feet long. Mia rides it 3 times. How many feet does she ride? Round your answer to the nearest thousand.",
+          zh: "雲霄飛車 C 長 5,138 英尺，Mia 坐了 3 次。她總共坐了幾英尺？答案四捨五入到千位。",
+          steps: [
+            { q: "What do we do first? 先做什麼？", choices: ["Multiply: 5,138 × 3 先算乘法", "Round 5,138 first 先把 5,138 取概數"], answer: "Multiply: 5,138 × 3 先算乘法" },
+            { q: "5,138 × 3 = ?", choices: ["15,414", "15,314", "5,141"], answer: "15,414" },
+            { q: "Round 15,414 to the nearest thousand. 四捨五入到千位", choices: ["15,000", "16,000", "15,400"], answer: "15,000" }
+          ]
+        }
+      ],
+      calc: [
+        { q: "(60 × 40) + 35 = ?", zh: "先算括號", a: "2,435", hint: "60 × 40 = 2,400，再加 35。" },
+        { q: "(16 × 23) + 50 − 4 = ?", zh: "先乘，再由左到右加減", a: "414", hint: "16 × 23 = 368，368 + 50 = 418，418 − 4 = 414。" },
+        { q: "53 × 60 − 27 = ?", zh: "先乘再減", a: "3,153", hint: "53 × 6 = 318，所以 53 × 60 = 3,180，再減 27。" },
+        { q: "64 × 7 + □ = 500，□ = ?", zh: "用逆運算找出 □", a: "52", hint: "64 × 7 = 448，□ = 500 − 448。" },
+        { q: "8 × 10 × 7 = ?", zh: "三個數相乘", a: "560", hint: "8 × 10 = 80，80 × 7 = 560。" },
+        { q: "40 × 6 × 3 = ?", zh: "三個數相乘", a: "720", hint: "40 × 6 = 240，240 × 3 = 720。" },
+        { q: "3,600 ÷ 90 = ?", zh: "除法：先把 0 一起拿掉", a: "40", hint: "360 ÷ 9 = 40。檢查：40 × 90 = 3,600。" },
+        { q: "7 × 398 = 7 × (400 − 2) = ?", zh: "用分配律", a: "2,786", hint: "(7 × 400) − (7 × 2) = 2,800 − 14。" },
+        { q: "8 × 147 = 800 + 320 + □，□ = ?", zh: "部分積", a: "56", hint: "8 × 100 = 800，8 × 40 = 320，8 × 7 = ?" },
+        { q: "(45 + 7) × 4 + 30 = ?", zh: "先算括號，再乘，最後加", a: "238", hint: "45 + 7 = 52，52 × 4 = 208，208 + 30 = 238。" },
+        { q: "5,284 × 3 = ?，答案四捨五入到千位", zh: "先算出答案再取概數", a: "16,000", hint: "5,284 × 3 = 15,852，看百位 8 ≥ 5，進位。" }
+      ],
+      quiz: [
+        { q: "A letter or symbol that stands for a number, like n in 8 × n = 48, is called a(n) ___. 代表一個數的字母或符號叫做？", choices: ["variable", "algorithm", "product"], answer: "variable" },
+        { q: "Multiplication and division undo each other. They are ___. 乘法和除法是？", choices: ["inverse operations", "compensation", "partial products"], answer: "inverse operations" },
+        { q: "Writing 47 × 6 as (40 × 6) + (7 × 6) to make it easier is called ___.", choices: ["breaking apart", "compensation", "array"], answer: "breaking apart" },
+        { q: "Amy finds 29 × 5 by doing 30 × 5 = 150, then subtracting 5. This method is ___.", choices: ["compensation", "breaking apart", "variable"], answer: "compensation" },
+        { q: "Which is the inverse operation of 6 × 9 = 54? 哪一個是 6 × 9 = 54 的逆運算？", choices: ["54 ÷ 9 = 6", "54 − 9 = 45", "6 + 9 = 15"], answer: "54 ÷ 9 = 6" },
+        { q: "Sam walks 5 dogs every week. He earns $10 for each dog. How much does he earn in 4 weeks?", choices: ["$200", "$50", "$40", "$19"], answer: "$200" },
+        { q: "Leo swims 20 weekends each year. Each weekend he swims 6 laps. How many laps does he swim in 3 years?", choices: ["360 laps", "120 laps", "180 laps", "29 laps"], answer: "360 laps" },
+        { q: "There are 14 tables with 6 people at each table. Each person gets 2 balloons. How many balloons in all?", choices: ["168", "84", "22", "136"], answer: "168" },
+        { q: "In which number is the value of the ten-thousands digit 10 times the value of the thousands digit? 萬位的值是千位的 10 倍？", choices: ["355,120", "342,150", "361,240", "378,910"], answer: "355,120" },
+        { q: "In 477,201, the 7 in the ten-thousands place is ___ times the 7 in the thousands place.", choices: ["10", "100", "7"], answer: "10" },
+        { q: "Ann read 1,800 pages in 60 days, the same number each day. How many pages did she read each day?", choices: ["30", "3", "300", "3,000"], answer: "30" },
+        { q: "In (25 × 4) + 30 − 5, what do you do first? 先算什麼？", choices: ["25 × 4 in the parentheses 括號裡的乘法", "30 − 5", "4 + 30"], answer: "25 × 4 in the parentheses 括號裡的乘法" },
+        { q: "To find 7 × 238, which three partial products can you add? 哪三個部分積？", choices: ["1,400 + 210 + 56", "200 + 30 + 8", "7 + 238 + 245"], answer: "1,400 + 210 + 56" },
+        { q: "Which shows 6 × 497 using the distributive property? 用分配律", choices: ["(6 × 500) − (6 × 3)", "(6 × 500) − 3", "(6 + 500) − (6 + 3)"], answer: "(6 × 500) − (6 × 3)" },
+        { q: "Ben rents a boat for 4 days. It costs $30 each day plus $5 each day for life jackets. He also pays $20 for fuel. What is the total cost?", choices: ["$160", "$140", "$55", "$155"], answer: "$160" },
+        { q: "4,815 × 3 = 14,445. What is the answer rounded to the nearest thousand?", choices: ["14,000", "15,000", "5,000", "14,400"], answer: "14,000" }
+      ]
     }
   ]
 };

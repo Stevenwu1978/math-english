@@ -37,6 +37,11 @@ button:disabled{opacity:.5;cursor:default}
 .video{position:relative;padding-top:56.25%}
 .video iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:12px}
 table{width:100%;border-collapse:collapse;font-size:16px}
+details{border-bottom:1px solid var(--line);padding:6px 0}
+summary{cursor:pointer}
+.tag{display:inline-block;font-size:13px;padding:1px 8px;border-radius:8px;background:#eef3ff;color:var(--pri2)}
+.flt{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.flt select,.flt input{font:inherit;font-size:16px;padding:6px;border-radius:10px;border:1px solid #ccc;max-width:100%}
 td,th{padding:6px;border-bottom:1px solid var(--line);text-align:left}
 </style>
 </head>
@@ -52,7 +57,9 @@ const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const shuffle=a=>a.map(v=>[Math.random(),v]).sort((x,y)=>x[0]-y[0]).map(v=>v[1]);
 function say(t){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/\(.*?\)/g,""));u.lang="en-US";u.rate=.85;speechSynthesis.speak(u)}catch(e){}}
-function rec(topic,kind,score,total){const r=db.rec[db.cur]=db.rec[db.cur]||{};const k=topic+"/"+kind;const p=r[k]||{best:0,tries:0};p.tries++;p.last=score+"/"+total;p.best=Math.max(p.best,Math.round(score/total*100));p.when=new Date().toLocaleString();r[k]=p;save()}
+function rec(topic,kind,score,total){const r=db.rec[db.cur]=db.rec[db.cur]||{};const k=topic+"/"+kind;const p=r[k]||{best:0,tries:0};p.tries++;p.last=score+"/"+total;p.best=Math.max(p.best,Math.round(score/total*100));p.when=new Date().toLocaleString();r[k]=p;if(kind!="quiz"&&kind!="calc")logHist(topic,kind,score,total,[]);save()}
+// 每次測驗的歷史紀錄：db.hist[孩子] = [{t 時間, topic, kind, score, total, wrong:[{k 類型, q 題目, a 正確答案, g 孩子的答案}]}]
+function logHist(topic,kind,score,total,wrong){if(!db.cur)return;db.hist=db.hist||{};const h=db.hist[db.cur]=db.hist[db.cur]||[];h.push({t:Date.now(),topic,kind,score,total,wrong});if(h.length>1000)h.splice(0,h.length-1000);save()}
 function pct(topic){const r=(db.rec[db.cur]||{});const ks=["words","match","calc","problems","quiz"];return Math.round(ks.reduce((s,k)=>s+((r[topic+"/"+k]||{}).best||0),0)/ks.length)}
 
 // ---- 登入與權限 ----
@@ -69,8 +76,9 @@ function home(){
   $("#who").innerHTML=db.cur?`👤 ${esc(db.cur)} <button class="ghost" style="padding:4px 10px" onclick="logout()">登出</button>`:"";
   if(!db.parentHash) return setupParent();
   if(!db.cur) return pickKid();
-  app.innerHTML=`<div class="card"><b>Hi, ${esc(db.cur)}!</b> 選一個單元開始 <button class="ghost" onclick="report()">成績紀錄</button></div>`+
-  COURSE.topics.map(t=>{const open=t.ready&&!db.locked[t.id];return`<div class="card"><div style="font-size:20px;font-weight:700">${esc(t.en)}</div><div>${esc(t.zh)}</div>${open?`<div class="bar" style="margin:8px 0"><i style="width:${pct(t.id)}%"></i></div><div class="small">完成度 ${pct(t.id)}%${wcount(t.id)?`　📕 錯題 ${wcount(t.id)} 題`:""}</div><button onclick="topic('${t.id}')">開始 Start</button>`:`<div class="small">🔒 ${t.ready?"家長尚未開放":"製作中 Coming soon"}</div>`}</div>`}).join("");
+  COURSE.topics.filter(t=>t.test&&t.ready&&!db.locked[t.id]).forEach(t=>{T=t;seedTest()});
+  app.innerHTML=`<div class="card"><b>Hi, ${esc(db.cur)}!</b> 選一個單元開始 <button class="ghost" onclick="report()">成績紀錄</button><button class="ghost" onclick="histPage()">📜 測驗歷史</button></div>`+
+  [...COURSE.topics].sort((a,b)=>(b.test?1:0)-(a.test?1:0)).map(t=>{const open=t.ready&&!db.locked[t.id];return`<div class="card"${t.test?' style="border:2px solid #e67e22"':""}><div style="font-size:20px;font-weight:700">${t.test?"📝 ":""}${esc(t.en)}</div><div>${esc(t.zh)}</div>${open?`<div class="bar" style="margin:8px 0"><i style="width:${pct(t.id)}%"></i></div><div class="small">完成度 ${pct(t.id)}%${wcount(t.id)?`　📕 錯題 ${wcount(t.id)} 題`:""}</div><button onclick="topic('${t.id}')">開始 Start</button>`:`<div class="small">🔒 ${t.ready?"家長尚未開放":"製作中 Coming soon"}</div>`}</div>`}).join("");
 }
 function logout(){setCur(null);isParent=false;home()}
 function setupParent(){
@@ -102,7 +110,7 @@ function parentLogin(){
 function parentPanel(){
   if(!isParent)return parentLogin();
   setCur(null);$("#who").innerHTML=`🔑 家長 <button class="ghost" style="padding:4px 10px" onclick="logout()">登出</button>`;
-  const kids=db.kids.map((k,i)=>`<tr><td><b>${esc(k)}</b></td><td>${db.pins[k]?"已設定":"未設定"}</td><td><button class="ghost" onclick="setPin(${i})">設定 PIN</button><button class="ghost" onclick="report(db.kids[${i}])">成績</button><button class="ghost" onclick="resetKid(${i})">重設紀錄</button><button class="bad" onclick="delKid(${i})">刪除</button></td></tr>`).join("");
+  const kids=db.kids.map((k,i)=>`<tr><td><b>${esc(k)}</b></td><td>${db.pins[k]?"已設定":"未設定"}</td><td><button class="ghost" onclick="setPin(${i})">設定 PIN</button><button class="ghost" onclick="report(db.kids[${i}])">成績</button><button class="ghost" onclick="histPage(db.kids[${i}])">歷史</button><button class="ghost" onclick="resetKid(${i})">重設紀錄</button><button class="bad" onclick="delKid(${i})">刪除</button></td></tr>`).join("");
   const tops=topicsFor().map(t=>`<label style="display:block;margin:6px 0"><input type="checkbox" ${db.locked[t.id]?"":"checked"} onchange="db.locked['${t.id}']=!this.checked;save()"> ${esc(t.zh)}</label>`).join("");
   app.innerHTML=`<div class="card"><h2>👨‍👩‍👧 孩子帳號</h2><table><tr><th>名字</th><th>PIN</th><th></th></tr>${kids||"<tr><td colspan=3>還沒有孩子帳號</td></tr>"}</table><p><input id="nk" placeholder="孩子名字" style="${inputCss}"> <input id="npin" type="password" inputmode="numeric" placeholder="PIN（可留空）" style="${inputCss};width:140px"> <button onclick="addKid()">新增</button></p><p id="msg" class="small"></p></div>
   <div class="card"><h2>🔓 開放給孩子的單元</h2>${tops}</div>
@@ -115,27 +123,60 @@ async function setPin(i){const k=db.kids[i];
   $("#ok").onclick=async()=>{const v=$("#pin").value.trim();if(v)db.pins[k]=await hash(v);else delete db.pins[k];save();parentPanel()};$("#pin").focus();
 }
 function confirmBox(text,yes){app.innerHTML=`<div class="card"><h2>${text}</h2><button class="bad" id="y">確定</button> <button class="ghost" onclick="parentPanel()">取消</button></div>`;$("#y").onclick=()=>{yes();save();parentPanel()}}
-function resetKid(i){const k=db.kids[i];confirmBox(`清除 ${esc(k)} 的成績和錯題本？`,()=>{delete db.rec[k];if(db.wrong)delete db.wrong[k]})}
-function delKid(i){const k=db.kids[i];confirmBox(`刪除 ${esc(k)} 的帳號和所有紀錄？`,()=>{db.kids.splice(i,1);delete db.rec[k];delete db.pins[k];if(db.wrong)delete db.wrong[k]})}
+function resetKid(i){const k=db.kids[i];confirmBox(`清除 ${esc(k)} 的成績和錯題本？`,()=>{delete db.rec[k];if(db.wrong)delete db.wrong[k];if(db.seeded)delete db.seeded[k];if(db.hist)delete db.hist[k]})}
+function delKid(i){const k=db.kids[i];confirmBox(`刪除 ${esc(k)} 的帳號和所有紀錄？`,()=>{db.kids.splice(i,1);delete db.rec[k];delete db.pins[k];if(db.wrong)delete db.wrong[k];if(db.seeded)delete db.seeded[k];if(db.hist)delete db.hist[k]})}
 async function changeParent(){const v=$("#np").value;if(v.length<4)return $("#pmsg").textContent="至少 4 碼";db.parentHash=await hash(v);save();$("#pmsg").textContent="已修改"}
 
 function report(kid){
   const who=kid||db.cur;const r=db.rec[who]||{};const names={calc:"計算練習",words:"單字卡",match:"配對遊戲",problems:"應用題",quiz:"小測驗"};
   const rows=Object.entries(r).map(([k,v])=>{const[t,kind]=k.split("/");const tp=COURSE.topics.find(x=>x.id==t);return`<tr><td>${esc(tp?tp.zh:t)}</td><td>${names[kind]}</td><td>${v.best}%</td><td>${v.last}</td><td>${v.tries}</td><td class="small">${esc(v.when)}</td></tr>`}).join("");
-  app.innerHTML=`<div class="card"><h2>${esc(who)} 的成績紀錄</h2><table><tr><th>單元</th><th>項目</th><th>最佳</th><th>上次</th><th>次數</th><th>時間</th></tr>${rows||"<tr><td colspan=6>還沒有紀錄</td></tr>"}</table><h3>📕 錯題本</h3><p>${COURSE.topics.filter(t=>t.ready).map(t=>`${esc(t.zh)}：${wcount(t.id,who)} 題`).join("<br>")}</p><button onclick="${kid?"parentPanel()":"home()"}">${kid?"回家長管理":"回首頁"}</button></div>`;
+  app.innerHTML=`<div class="card"><h2>${esc(who)} 的成績紀錄</h2><table><tr><th>單元</th><th>項目</th><th>最佳</th><th>上次</th><th>次數</th><th>時間</th></tr>${rows||"<tr><td colspan=6>還沒有紀錄</td></tr>"}</table><h3>📕 錯題本</h3><p>${COURSE.topics.filter(t=>t.ready).map(t=>`${esc(t.zh)}：${wcount(t.id,who)} 題`).join("<br>")}</p><button class="ghost" onclick="histPage(${kid?`db.kids[${db.kids.indexOf(kid)}]`:""})">📜 查看每次測驗的歷史</button><button onclick="${kid?"parentPanel()":"home()"}">${kid?"回家長管理":"回首頁"}</button></div>`;
+}
+// ---- 測驗歷史查詢 ----
+const KINDS={quiz:"✅ 小測驗",calc:"🔢 計算練習",review:"📕 錯題練習",problems:"📝 應用題",match:"🧩 配對遊戲",words:"🃏 單字卡"};
+let HF={kind:"test",topic:"",from:"",to:"",onlyWrong:false};
+const dstr=t=>{const d=new Date(t),z=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`};
+function histPage(kid){
+  const asParent=isParent&&!db.cur;const who=asParent?(kid||db.kids[0]):db.cur;
+  if(!who)return home();
+  const all=((db.hist||{})[who]||[]).slice().reverse();
+  const tname=id=>{const tp=COURSE.topics.find(x=>x.id==id);return tp?tp.zh:id};
+  const list=all.filter(h=>(HF.kind=="all"||(HF.kind=="test"?["quiz","calc","review"].includes(h.kind):h.kind==HF.kind))&&(!HF.topic||h.topic==HF.topic)&&(!HF.from||dstr(h.t)>=HF.from)&&(!HF.to||dstr(h.t)<=HF.to)&&(!HF.onlyWrong||(h.wrong||[]).length));
+  const avg=list.length?Math.round(list.reduce((s,h)=>s+h.score/h.total,0)/list.length*100):0;
+  const nWrong=list.reduce((s,h)=>s+(h.wrong||[]).length,0);
+  const opt=(v,l,cur)=>`<option value="${esc(v)}"${v==cur?" selected":""}>${esc(l)}</option>`;
+  const kidSel=asParent?`<label>孩子 <select id="hk">${db.kids.map(k=>opt(k,k,who)).join("")}</select></label>`:"";
+  const rows=list.map(h=>{const p=Math.round(h.score/h.total*100);const w=h.wrong||[];const d=new Date(h.t);
+    const head=`<b style="color:${p>=80?"var(--ok)":p>=60?"#e67e22":"var(--bad)"}">${p} 分</b>　${h.score} / ${h.total}　<span class="tag">${KINDS[h.kind]||h.kind}</span> ${esc(tname(h.topic))}<br><span class="small">${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}${w.length?`　❌ 錯 ${w.length} 題`:["quiz","calc","review"].includes(h.kind)?"　🎉 全對":""}</span>`;
+    return w.length?`<details><summary>${head}</summary><table style="margin-top:6px"><tr><th>題目</th><th>孩子的答案</th><th>正確答案</th></tr>${w.map(x=>`<tr><td>${esc(x.q)}</td><td style="color:var(--bad)">${esc(x.g||"")}</td><td><b style="color:var(--ok)">${esc(x.a)}</b></td></tr>`).join("")}</table></details>`:`<div style="border-bottom:1px solid var(--line);padding:6px 0">${head}</div>`}).join("");
+  app.innerHTML=`<div class="card"><h2>📜 ${esc(who)} 的測驗歷史 Test History</h2>
+  <div class="flt">${kidSel}
+  <label>項目 <select id="hkind">${opt("test","測驗類（測驗＋計算＋錯題）",HF.kind)}${opt("all","全部",HF.kind)}${Object.entries(KINDS).map(([k,l])=>opt(k,l,HF.kind)).join("")}</select></label>
+  <label>單元 <select id="htopic">${opt("","全部單元",HF.topic)}${COURSE.topics.filter(t=>t.ready).map(t=>opt(t.id,t.zh,HF.topic)).join("")}</select></label>
+  <label>從 <input type="date" id="hfrom" value="${HF.from}"></label><label>到 <input type="date" id="hto" value="${HF.to}"></label>
+  <label><input type="checkbox" id="hw" ${HF.onlyWrong?"checked":""}> 只看有錯的</label>
+  <button class="ghost" id="hclr" style="padding:4px 10px">清除篩選</button></div>
+  <p class="small">共 ${list.length} 次，平均 ${avg} 分，累計錯 ${nWrong} 題。點有 ❌ 的紀錄可以看錯在哪裡。</p>
+  ${rows||"<p>沒有符合的紀錄。做完測驗或計算練習就會自動記下來。</p>"}
+  <p><button onclick="${asParent?"parentPanel()":"home()"}">${asParent?"回家長管理":"回首頁"}</button></p></div>`;
+  const re=()=>{HF={kind:$("#hkind").value,topic:$("#htopic").value,from:$("#hfrom").value,to:$("#hto").value,onlyWrong:$("#hw").checked};histPage(asParent&&$("#hk")?$("#hk").value:who)};
+  ["#hkind","#htopic","#hfrom","#hto","#hw"].forEach(s=>$(s).onchange=re);if($("#hk"))$("#hk").onchange=re;
+  $("#hclr").onclick=()=>{HF={kind:"test",topic:"",from:"",to:"",onlyWrong:false};histPage(who)};
 }
 
 let T;
 function topic(id,tab="learn"){
   T=COURSE.topics.find(t=>t.id==id);if(!db.cur||db.locked[id])return home();
-  const tabs=[["learn","📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"],["review","📕 錯題本"+(wcount(id)?`（${wcount(id)}）`:"")]];
+  if(T.test)seedTest();
+  const tabs=[["learn",T.test?"🔍 錯在哪裡":"📺 影片與觀念"],["words","🃏 單字卡"],["match","🧩 配對遊戲"],["calc","🔢 計算練習"],["problems","📝 應用題"],["quiz","✅ 小測驗"],["review","📕 錯題本"+(wcount(id)?`（${wcount(id)}）`:"")]];
   app.innerHTML=`<div class="card"><div style="font-weight:700">${esc(T.en)}　${esc(T.zh)}</div><div class="tabs" style="margin-top:8px">${tabs.map(([k,l])=>`<button class="${k==tab?"on":""}" onclick="topic('${id}','${k}')">${l}</button>`).join("")}</div></div><div id="pane"></div>`;
   ({learn,words,match,calc,problems,quiz,review})[tab]();
 }
 function learn(){
   const vids=(T.videos||[]).map(v=>`<div class="card"><h3>📺 ${esc(v.title)}</h3><div class="small">Lesson ${esc(v.lesson)} · ${esc(v.by)}</div><div class="video" style="margin-top:8px"><iframe src="https://www.youtube-nocookie.com/embed/${esc(v.id)}?rel=0" allowfullscreen loading="lazy"></iframe></div></div>`).join("");
   const les=(T.lessons||[]).map(l=>`<tr><td>${esc(l[0])}</td><td>${esc(l[1])}</td><td>${esc(l[2])}</td></tr>`).join("");
-  $("#pane").innerHTML=`${les?`<div class="card"><h3>📚 課程 Lessons</h3><table>${les}</table></div>`:""}<div class="card"><h3>💡 重要觀念 Big Ideas</h3>${T.concept.map(c=>`<p><b>${esc(c.en)}</b> <button class="ghost" onclick="say(this.dataset.t)" data-t="${esc(c.en)}">🔊</button><br>${esc(c.zh)}</p>`).join("")}</div>${vids}`;
+  const mis=T.mistakes?`<div class="card"><h3>🔍 考卷錯在哪裡 What went wrong</h3><table><tr><th>題號</th><th>題目重點</th><th>錯誤</th><th>正確觀念</th></tr>${T.mistakes.map(m=>`<tr><td><b>${esc(m.no)}</b></td><td>${esc(m.what)}</td><td>${esc(m.wrong)}</td><td>${esc(m.fix)}</td></tr>`).join("")}</table><p class="small">這些觀念的類似題已經放進「📕 錯題本」，答對就會移出。</p></div>`:"";
+  $("#pane").innerHTML=`${mis}${les?`<div class="card"><h3>📚 課程 Lessons</h3><table>${les}</table></div>`:""}<div class="card"><h3>💡 重要觀念 Big Ideas</h3>${T.concept.map(c=>`<p><b>${esc(c.en)}</b> <button class="ghost" onclick="say(this.dataset.t)" data-t="${esc(c.en)}">🔊</button><br>${esc(c.zh)}</p>`).join("")}</div>${vids}`;
 }
 function words(){
   let i=0,known=0;const list=shuffle(T.words);
@@ -177,6 +218,8 @@ function problems(){
   };draw();
 }
 // ---- 錯題本 ----
+// 考卷複習單元：第一次打開時，把所有類似題放進這個孩子的錯題本
+function seedTest(){db.seeded=db.seeded||{};const sd=db.seeded[db.cur]=db.seeded[db.cur]||{};if(sd[T.id])return;const w=wbook();T.quiz.forEach(q=>w["quiz|"+q.q]=w["quiz|"+q.q]||1);T.calc.forEach(q=>w["calc|"+q.q]=w["calc|"+q.q]||1);sd[T.id]=true;save()}
 function wbook(){db.wrong=db.wrong||{};const w=db.wrong[db.cur]=db.wrong[db.cur]||{};return w[T.id]=w[T.id]||{}}
 function wcount(tid,who){return Object.keys(((db.wrong||{})[who||db.cur]||{})[tid]||{}).length}
 function markWrong(kind,q){const w=wbook();const k=kind+"|"+q.q;w[k]=(w[k]||0)+1;save()}
@@ -193,6 +236,7 @@ function runItems(items,mode){
   const norm=x=>String(x).replace(/[,\s$]/g,"");
   const finish=()=>{
     if(mode!=="review")rec(T.id,mode,sc,items.length);
+    logHist(T.id,mode,sc,items.length,wrong.map(x=>({k:x.kind,q:x.q.q,a:x.kind=="quiz"?x.q.answer:x.q.a,g:x.given.join(" → ")})));
     const left=wcount(T.id);
     const title=mode=="review"?`錯題練習完成！答對 ${sc} / ${items.length} 題`:mode=="quiz"?`得分 ${Math.round(sc/items.length*100)} 分（${sc} / ${items.length}）`:`計算練習完成！答對 ${sc} / ${items.length} 題`;
     const list=wrong.length?`<h4>這次答錯的題目</h4><table><tr><th>題目</th><th>正確答案</th></tr>${wrong.map(x=>`<tr><td>${esc(x.q.q)}</td><td><b>${esc(x.kind=="quiz"?x.q.answer:x.q.a)}</b></td></tr>`).join("")}</table>`:`<p>全部答對，太棒了！🎉</p>`;
@@ -208,7 +252,7 @@ function runItems(items,mode){
       $("#pane").innerHTML=`<div class="card">${head}<p><b>${esc(q.q)}</b></p>${shuffle(q.choices).map(c=>`<button class="choice">${esc(c)}</button>`).join("")}</div>`;
       document.querySelectorAll(".choice").forEach(b=>b.onclick=()=>{
         document.querySelectorAll(".choice").forEach(x=>{x.disabled=true;if(x.textContent===q.answer)x.classList.add("ok")});
-        if(b.textContent===q.answer){sc++;if(mode=="review")markRight(kind,q)}else{b.classList.add("bad");wrong.push(items[i]);markWrong(kind,q)}
+        if(b.textContent===q.answer){sc++;if(mode=="review")markRight(kind,q)}else{b.classList.add("bad");wrong.push({...items[i],given:[b.textContent]});markWrong(kind,q)}
         setTimeout(next,b.textContent===q.answer?900:1600);
       });
     }else{
@@ -218,8 +262,8 @@ function runItems(items,mode){
       const check=()=>{
         if(!inp.value.trim()||$("#ck").disabled)return;
         if(norm(inp.value)===norm(q.a)){if(!tried){sc++;if(mode=="review")markRight(kind,q)}$("#fb").innerHTML=`<b style="color:var(--ok)">✔ 答對了！ Correct!</b>`;$("#ck").disabled=true;setTimeout(next,900)}
-        else if(!tried){tried=true;wrong.push(items[i]);markWrong(kind,q);$("#fb").innerHTML=`<b style="color:var(--bad)">再想一想 Try again</b>${q.hint?`<br><span class="small">提示：${esc(q.hint)}</span>`:""}`;inp.select()}
-        else{$("#fb").innerHTML=`<b style="color:var(--bad)">答案是 ${esc(q.a)}</b> <button id="nx">下一題</button>`;$("#nx").onclick=next;$("#ck").disabled=true}
+        else if(!tried){tried=true;wrong.push({...items[i],given:[inp.value.trim()]});markWrong(kind,q);$("#fb").innerHTML=`<b style="color:var(--bad)">再想一想 Try again</b>${q.hint?`<br><span class="small">提示：${esc(q.hint)}</span>`:""}`;inp.select()}
+        else{wrong[wrong.length-1].given.push(inp.value.trim());$("#fb").innerHTML=`<b style="color:var(--bad)">答案是 ${esc(q.a)}</b> <button id="nx">下一題</button>`;$("#nx").onclick=next;$("#ck").disabled=true}
       };
       $("#ck").onclick=check;inp.onkeydown=e=>{if(e.key==="Enter")check()};
     }
